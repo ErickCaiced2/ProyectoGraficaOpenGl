@@ -452,6 +452,26 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
 
+    unsigned int demonioLightmap;
+    glGenTextures(1, &demonioLightmap);
+    glBindTexture(GL_TEXTURE_2D, demonioLightmap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load("textures/demonio_lightmap.png", &width, &height, &nrChannels, 4);
+    if (data) {
+        GLenum format = GL_RGBA;
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else {
+        std::cerr << "No se pudo cargar demonio_lightmap.png\n";
+    }
+    stbi_image_free(data);
+
     Shader sceneShader("shaders/scene.vs", "shaders/scene.fs");
     Shader lightShader("shaders/lightning.vs", "shaders/lightning.fs");
 
@@ -589,14 +609,27 @@ int main() {
         sceneShader.setMat4("model", model7);
         modelo7.Draw(sceneShader);
         
-        // Renderizar demonio (solo si no está destruido)
+        // Renderizar demonio 
         if (!modelsDestroyed) {
+            // Activar el uso del light map SÓLO para el demonio
+            sceneShader.setBool("useLightMap", true);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, demonioLightmap);
+            sceneShader.setInt("lightMap", 3);
+
             glm::mat4 model2 = glm::mat4(1.0f);
             model2 = glm::translate(model2, glm::vec3(5.0f, 13.0f, -40.0f));
             model2 = glm::scale(model2, glm::vec3(0.008f));
             sceneShader.setMat4("model", model2);
             modelo2.Draw(sceneShader);
+
+            // Importante: Desactivar después para que no afecte a otros modelos
+            sceneShader.setBool("useLightMap", false);
         }
+
+        // Desactivar light map para los siguientes modelos
+        sceneShader.setBool("useLightMap", false);
+        
         //Renderizar avión (solo si no está destruido)
         if (!modelsDestroyed) {
             glm::mat4 model3 = glm::mat4(1.0f);

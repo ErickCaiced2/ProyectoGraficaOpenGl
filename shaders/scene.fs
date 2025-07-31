@@ -59,6 +59,9 @@ uniform sampler2D texture_diffuse1;
 uniform SpotLight spotLight;
 uniform MoonLight moonLight;
 
+uniform sampler2D lightMap;
+uniform bool useLightMap;
+
 // Uniformes para la explosión
 uniform float explosionRadius;
 uniform vec3 explosionOrigin;
@@ -216,6 +219,12 @@ void main() {
         // Luz de la luna
     result += CalcMoonLight(moonLight, norm, FragPos);
     
-    // Asegurar que el resultado final es válido
+    // Si está activado el uso de light map, modula el resultado con él
+    if (useLightMap) {
+        vec3 lightMapColor = texture(lightMap, TexCoords).rgb;
+        result *= lightMapColor;
+    }
+
+    // Asegurar valores válidos y asignar el color final
     FragColor = vec4(max(vec3(0.0), result), 1.0);
 }
